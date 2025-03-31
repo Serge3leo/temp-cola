@@ -1,0 +1,11 @@
+---
+name: Serge3leo-temp-cola
+channels:
+  - conda-forge
+dependencies:
+  - blas
+  - charset-normalizer
+  - fortran-magic
+  - lapack
+  - pip
+...
