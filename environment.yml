@@ -3,8 +3,10 @@ name: Serge3leo-temp-cola
 channels:
   - conda-forge
 dependencies:
+  - python>=3.13
   - blas
   - charset-normalizer
+  - fortran-compiler
   - fortran-magic
   - lapack
   - pip
