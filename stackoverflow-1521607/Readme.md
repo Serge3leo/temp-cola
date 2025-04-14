@@ -16,7 +16,7 @@ Main issues and features:
    it a non-integer number. To get the result identical Python should be
    used: `std::rint(x) - x == 0.`;
 2. `constexpr`, according to existing C/C++ standards, these
-   expressions are impossible use when calculating the `constexpr'
+   expressions are impossible use when calculating the `constexpr`
    values (see other methods below);
 3. `FE_INEXACT`, by C/C++ standards, `std::rint()` always registers
    (or causes) a `FE_INEXACT` exception for non-integers, but for 
@@ -104,7 +104,7 @@ save/restore FPU state, so when working on virtual machines, it can
 be worse even than `std::modf()`.
 
 If `constexpr` is not required, then the options are 
-`std::floor()`/`std::floor()`/`std::trunk()` is a good choice with stable
+`std::ceil()`/`std::floor()`/`std::trunk()` is a good choice with stable
 performance for any input arguments. IMHO, implementation 
 `float.is_integer()` CPython uses `floor()`.
 
