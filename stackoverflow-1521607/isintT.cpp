@@ -23,8 +23,31 @@
         return std::ceil(x) == x;
     }
     template<typename T>
+    constexpr bool isint_denorm(T x) noexcept {
+        using nlT = std::numeric_limits<T>;
+        static_assert(nlT::denorm_min() != nlT::min());
+        return ((x*nlT::denorm_min())/nlT::denorm_min()) == x;
+    }
+    template<typename T>
     bool isint_floor(T x) noexcept {
         return std::floor(x) == x;
+    }
+    template<typename T>
+    constexpr bool isint_int64(T x) noexcept {
+        return static_cast<T>(static_cast<int64_t>(x)) == x;
+    }
+    template<typename T>
+    constexpr bool isint_int64_inf(T x) noexcept {
+        using nlT = std::numeric_limits<T>;
+        static_assert(nlT::digits - 1 <= std::numeric_limits<int64_t>::digits);
+        const T last_non_int = static_cast<T>(1ULL << (nlT::digits - 1))
+                               - static_cast<T>(0.5);
+        return (x < -last_non_int || last_non_int < x) || isint_int64(x);
+    }
+    template<typename T>
+    bool isint_modf(T x) noexcept {
+        T intpart{};
+        return std::modf(x, &intpart) == 0.0;
     }
     template<typename T>
     bool isint_nearbyint(T x) noexcept {
@@ -42,14 +65,24 @@
     bool isint_trunc(T x) noexcept {
         return std::trunc(x) == x;
     }
+#else
     template<typename T>
-    bool isint_modf(T x) noexcept {
-        T intpart{};
-        return std::modf(x, &intpart) == 0.0;
+    bool isint_ceil(T x) noexcept {
+        return std::ceil(x) - x == 0;
+    }
+    template<typename T>
+    constexpr bool isint_denorm(T x) noexcept {
+        using nlT = std::numeric_limits<T>;
+        static_assert(nlT::denorm_min() != nlT::min());
+        return ((x*nlT::denorm_min())/nlT::denorm_min()) - x == 0;
+    }
+    template<typename T>
+    bool isint_floor(T x) noexcept {
+        return std::floor(x) - x == 0;
     }
     template<typename T>
     constexpr bool isint_int64(T x) noexcept {
-        return static_cast<T>(static_cast<int64_t>(x)) == x;
+        return static_cast<T>(static_cast<int64_t>(x)) - x == 0;
     }
     template<typename T>
     constexpr bool isint_int64_inf(T x) noexcept {
@@ -57,22 +90,13 @@
         static_assert(nlT::digits - 1 <= std::numeric_limits<int64_t>::digits);
         const T last_non_int = static_cast<T>(1ULL << (nlT::digits - 1))
                                - static_cast<T>(0.5);
-        return (x < -last_non_int || last_non_int < x) || isint_int64(x);
+        return INFINITY != x && -INFINITY != x  &&
+               ((x < -last_non_int || last_non_int < x) || isint_int64(x));
     }
     template<typename T>
-    constexpr bool isint_denorm(T x) noexcept {
-        using nlT = std::numeric_limits<T>;
-        static_assert(nlT::denorm_min() != nlT::min());
-        return ((x*nlT::denorm_min())/nlT::denorm_min()) == x;
-    }
-#else
-    template<typename T>
-    bool isint_ceil(T x) noexcept {
-        return std::ceil(x) - x == 0;
-    }
-    template<typename T>
-    bool isint_floor(T x) noexcept {
-        return std::floor(x) - x == 0;
+    bool isint_modf(T x) noexcept {
+        T intpart{};
+        return std::isfinite(x) && std::modf(x, &intpart) == 0.0;
     }
     template<typename T>
     bool isint_nearbyint(T x) noexcept {
@@ -89,30 +113,6 @@
     template<typename T>
     bool isint_trunc(T x) noexcept {
         return std::trunc(x) - x == 0;
-    }
-    template<typename T>
-    bool isint_modf(T x) noexcept {
-        T intpart{};
-        return std::isfinite(x) && std::modf(x, &intpart) == 0.0;
-    }
-    template<typename T>
-    constexpr bool isint_int64(T x) noexcept {
-        return static_cast<T>(static_cast<int64_t>(x)) - x == 0;
-    }
-    template<typename T>
-    constexpr bool isint_int64_inf(T x) noexcept {
-        using nlT = std::numeric_limits<T>;
-        static_assert(nlT::digits - 1 <= std::numeric_limits<int64_t>::digits);
-        const T last_non_int = static_cast<T>(1ULL << (nlT::digits - 1))
-                               - static_cast<T>(0.5);
-        return x != INFINITY && x != -INFINITY  &&
-               ((x < -last_non_int || last_non_int < x) || isint_int64(x));
-    }
-    template<typename T>
-    constexpr bool isint_denorm(T x) noexcept {
-        using nlT = std::numeric_limits<T>;
-        static_assert(nlT::denorm_min() != nlT::min());
-        return ((x*nlT::denorm_min())/nlT::denorm_min()) - x == 0;
     }
 #endif
 
@@ -162,8 +162,8 @@ DT(isint_rint,      false, ,          0,          true);
 DT(isint_round,     false, ,          0,          false);
 DT(isint_trunc,     false, ,          0,          false);
 #define DT_LIST (isint_ceil_t, isint_denorm_t, isint_floor_t, isint_int64_t, \
-                 isint_int64_inf_t, isint_modf_t, isint_rint_t, isint_round_t, \
-                 isint_trunc_t)
+                 isint_int64_inf_t, isint_modf_t, isint_nearbyint_t, \
+                 isint_rint_t, isint_round_t, isint_trunc_t)
 
 template<typename T>
 struct test_cases {
