@@ -1,0 +1,4 @@
+[submodule "contrib/Catch2-v2.x"]
+	path = contrib/Catch2-v2.x
+	url = git@github.com:catchorg/Catch2.git
+	branch = v2.x
