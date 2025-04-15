@@ -3,7 +3,8 @@
 I came across an old question:
 [Check double variable if it contains an integer, and not floating point](https://stackoverflow.com/q/1521607/8585880),
 17 answers, but somehow everything is without a system. And the question 
-is interesting, as we say, with a trick.
+is interesting, as we say, with a trick. Especially in light of the latest 
+C++ innovations (`constexpr`, etc.).
 
 Probably, the simplest ways should be considered: 
 `std::int(x) == x`, `std::ceil(x) == x`, as the shortest ones. However, 
@@ -11,27 +12,29 @@ they are not exactly identical, and also slightly different from the 17
 others methods.
 
 Main issues and features:
-1. ±∞ is an integer or not, both of these methods consider it to be
-   an integer (which is logical, because in the arithmetic of floating
+1. ±∞ are integers or not, both of these methods consider them integers
+   (which is logical, because in the arithmetic of floating
    numbers ∀x ∈ R<sub>fp</sub> x ∉ Z => |x| < Const). But, for example,
-   Python `float.is_integer()` considers it a non-integer number. To get
+   Python `float.is_integer()` does not consider them to be integers. To get
    the result identical Python should be used: `std::rint(x) - x == 0`;
-3. `constexpr`, according to existing C/C++ standards, these
+2. `constexpr`, according to existing C++ standards, these
    expressions are impossible use when calculating the `constexpr`
-   values (see other methods below);
-4. `FE_INEXACT`, by C/C++ standards, `std::rint()` always registers
+   values (see other expressions in `isint_denorm()`, `isint_intN_inf()`
+   and `isint_intN_inf()` below);
+3. `FE_INEXACT`, by C/C++ standards, `std::rint()` always registers
    (or causes) a `FE_INEXACT` exception for non-integers, but for 
    `std::ceil()` this will be determined by the implementation.
    It should be noted that working with the FPU state can lead to
    a noticeable drop in performance when running on virtual machines
    (depending of compiler, OS, and VM);
-6. Performance, theoretically, since `std::rint()` uses
+4. Performance, theoretically, since `std::rint()` uses
    the current rounding method, while `std::ceil()` rounds toward positive,
    `std::rint()` may be more efficient (but the efficiency may also be
    affected by the previous paragraph).
 
 10 ways to check integral value of a floating number with a single 
 expression:
+
 ```
 template<typename T>
 bool isint_ceil(T x) noexcept {
