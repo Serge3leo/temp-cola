@@ -12,20 +12,21 @@ others methods.
 
 Main issues and features:
 1. ±∞ is an integer or not, both of these methods consider it to be
-   an integer. But, for example, Python `float.is_integer()` considers
-   it a non-integer number. To get the result identical Python should be
-   used: `std::rint(x) - x == 0.`;
-2. `constexpr`, according to existing C/C++ standards, these
+   an integer (which is logical, because in the arithmetic of floating
+   numbers ∀x ∈ R<sub>fp</sub> x ∉ Z => |x| < Const). But, for example,
+   Python `float.is_integer()` considers it a non-integer number. To get
+   the result identical Python should be used: `std::rint(x) - x == 0`;
+3. `constexpr`, according to existing C/C++ standards, these
    expressions are impossible use when calculating the `constexpr`
    values (see other methods below);
-3. `FE_INEXACT`, by C/C++ standards, `std::rint()` always registers
+4. `FE_INEXACT`, by C/C++ standards, `std::rint()` always registers
    (or causes) a `FE_INEXACT` exception for non-integers, but for 
    `std::ceil()` this will be determined by the implementation.
-   It should be noted that maintenance of the FPU status can lead
-   to a noticeable drop in performance when running on virtual
-   machines (depending on compiler, OS, and virtual machine);
-4. Performance, theoretically, since `std::rint()` uses
-   the current rounding method, while `std::ceil()` rounds down,
+   It should be noted that working with the FPU state can lead to
+   a noticeable drop in performance when running on virtual machines
+   (depending of compiler, OS, and VM);
+6. Performance, theoretically, since `std::rint()` uses
+   the current rounding method, while `std::ceil()` rounds toward positive,
    `std::rint()` may be more efficient (but the efficiency may also be
    affected by the previous paragraph).
 
@@ -46,22 +47,23 @@ template<typename T>
 bool isint_floor(T x) noexcept {
     return std::floor(x) == x;
 }
-template<typename T>
-constexpr bool isint_int64(T x) noexcept {
-    return static_cast<T>(static_cast<int64_t>(x)) == x;
+template<typename T, typename I  = int64_t>
+constexpr bool isint_intN(T x) noexcept {
+    return static_cast<T>(static_cast<I>(x)) == x;
 }
-template<typename T>
-constexpr bool isint_int64_inf(T x) noexcept {
+template<typename T, typename I = int64_t, typename U = uint64_t>
+constexpr bool isint_intN_inf(T x) noexcept {
     using nlT = std::numeric_limits<T>;
-    static_assert(nlT::digits - 1 <= std::numeric_limits<int64_t>::digits);
-    const T last_non_int = static_cast<T>(1ULL << (nlT::digits - 1))
-                           - static_cast<T>(0.5);
-    return (x < -last_non_int || last_non_int < x) || isint_int64(x);
+    using nlI = std::numeric_limits<I>;
+    constexpr T last_non_int = T(U(1) << (nlT::digits - 1)) - T(0.5L);
+    static_assert(nlT::digits - 1 <= nlI::digits && sizeof(U) == sizeof(I));
+    if constexpr (last_non_int >= T(1) + T(nlI::max())) throw x;  // assert
+    return (x < -last_non_int || last_non_int < x) || isint_intN<T,I>(x);
 }
 template<typename T>
 bool isint_modf(T x) noexcept {
     T intpart{};
-    return std::modf(x, &intpart) == 0.0;
+    return std::modf(x, &intpart) == 0;
 }
 template<typename T>
 bool isint_nearbyint(T x) noexcept {
@@ -81,20 +83,20 @@ bool isint_trunc(T x) noexcept {
 }
 ```
 
-Summary table of these 10 methods with a conditional performance rating:
+Summary table of these 10 methods with a arbitrary performance rating:
 
- Name           | Rating   | constexpr | FE_INEXACT | For Python          | Notes
-----------------|----------|-----------|------------|---------------------|-----------------------------------
-isint_int64     | 1        | constexpr | yes        | -                   | -2<sup>63</sup>..2<sup>63</sup>-1
-isint_rint      | 2 or 10¹ |           | must       | f(x) - x == 0       |
-isint_ceil      | 3        |           |            | f(x) - x == 0       |
-isint_floor     | 3        |           |            | f(x) - x == 0       |
-isint_nearbyint | 3 or 9²  |           | no         | f(x) - x == 0       |
-isint_trunc     | 3        |           |            | f(x) - x == 0       |
-isint_round     | 4        |           |            | f(x) - x == 0       |
-isint_int64_inf | 5        | constexpr | yes        | INFINITY != x &&... | Max binary80
-isint_modf      | 6        |           | no         | isfinite(x) &&...   |
-isint_denorm    | 10       | constexpr | yes        | f(x) - x == 0       | Any ISO/IEC 60559
+ Name           | Rating  | constexpr | FE_INEXACT | As Python           | Notes
+----------------|---------|-----------|------------|---------------------|-----------------------------------
+isint_intN      | 1       | constexpr | yes        | -                   | -2<sup>63</sup>..2<sup>63</sup>-1
+isint_rint      | 2 or 5¹ |           | must       | f(x) - x == 0       |
+isint_ceil      | 3       |           |            | f(x) - x == 0       |
+isint_floor     | 3       |           |            | f(x) - x == 0       |
+isint_intN_inf  | 3       | constexpr | yes        | INFINITY != x &&... | Max binary80
+isint_nearbyint | 3 or 6² |           | no         | f(x) - x == 0       |
+isint_trunc     | 3       |           |            | f(x) - x == 0       |
+isint_round     | 4       |           |            | f(x) - x == 0       |
+isint_modf      | 5       |           | no         | isfinite(x) &&...   |
+isint_denorm    | 7       | constexpr | yes        | f(x) - x == 0       | Any ISO/IEC 60559
 
 ¹) `std::rint()`, unexpectedly, turned out to be very inefficient for VS2022
 on Win10 under Parallels on mac OS. The reasons for this are unclear;
@@ -103,10 +105,15 @@ on Win10 under Parallels on mac OS. The reasons for this are unclear;
 save/restore FPU state, so when working on virtual machines, it can
 be worse even than `std::modf()`.
 
-If `constexpr` is not required, then the options are 
+If `constexpr` is not required, then the options are simplest
 `std::ceil()`/`std::floor()`/`std::trunk()` is a good choice with stable
-performance for any input arguments. IMHO, implementation 
-`float.is_integer()` CPython uses `floor()`.
+performance for any input arguments. IMHO, CPython implementation 
+`float.is_integer()` uses `floor()`.
 
 The source code of Python-compatible variants `float.is_integer()`, and the tests:
 [https://github.com/Serge3leo/temp-cola/blob/main/stackoverflow-1521607/isintT.cpp](https://github.com/Serge3leo/temp-cola/blob/main/stackoverflow-1521607/isintT.cpp)
+
+P.S.
+
+If someone knows other `constexpr` ways to check floating numbers
+has integral value, I would be very grateful.

@@ -32,22 +32,23 @@
     bool isint_floor(T x) noexcept {
         return std::floor(x) == x;
     }
-    template<typename T>
-    constexpr bool isint_int64(T x) noexcept {
-        return static_cast<T>(static_cast<int64_t>(x)) == x;
+    template<typename T, typename I = int64_t>
+    constexpr bool isint_intN(T x) noexcept {
+        return static_cast<T>(static_cast<I>(x)) == x;
     }
-    template<typename T>
-    constexpr bool isint_int64_inf(T x) noexcept {
+    template<typename T, typename I = int64_t, typename U = uint64_t>
+    constexpr bool isint_intN_inf(T x) noexcept {
         using nlT = std::numeric_limits<T>;
-        static_assert(nlT::digits - 1 <= std::numeric_limits<int64_t>::digits);
-        const T last_non_int = static_cast<T>(1ULL << (nlT::digits - 1))
-                               - static_cast<T>(0.5);
-        return (x < -last_non_int || last_non_int < x) || isint_int64(x);
+        using nlI = std::numeric_limits<I>;
+        constexpr T last_non_int = T(U(1) << (nlT::digits - 1)) - T(0.5L);
+        static_assert(nlT::digits - 1 <= nlI::digits && sizeof(U) == sizeof(I));
+        if constexpr (last_non_int >= T(1) + T(nlI::max())) throw x;  // assert
+        return (x < -last_non_int || last_non_int < x) || isint_intN<T,I>(x);
     }
     template<typename T>
     bool isint_modf(T x) noexcept {
         T intpart{};
-        return std::modf(x, &intpart) == 0.0;
+        return std::modf(x, &intpart) == 0;
     }
     template<typename T>
     bool isint_nearbyint(T x) noexcept {
@@ -80,23 +81,24 @@
     bool isint_floor(T x) noexcept {
         return std::floor(x) - x == 0;
     }
-    template<typename T>
-    constexpr bool isint_int64(T x) noexcept {
-        return static_cast<T>(static_cast<int64_t>(x)) - x == 0;
+    template<typename T, typename I  = int64_t>
+    constexpr bool isint_intN(T x) noexcept {
+        return static_cast<T>(static_cast<I>(x)) - x == 0;
     }
-    template<typename T>
-    constexpr bool isint_int64_inf(T x) noexcept {
+    template<typename T, typename I = int64_t, typename U = uint64_t>
+    constexpr bool isint_intN_inf(T x) noexcept {
         using nlT = std::numeric_limits<T>;
-        static_assert(nlT::digits - 1 <= std::numeric_limits<int64_t>::digits);
-        const T last_non_int = static_cast<T>(1ULL << (nlT::digits - 1))
-                               - static_cast<T>(0.5);
+        using nlI = std::numeric_limits<I>;
+        constexpr T last_non_int = T(U(1) << (nlT::digits - 1)) - T(0.5L);
+        static_assert(nlT::digits - 1 <= nlI::digits && sizeof(U) == sizeof(I));
+        if constexpr (last_non_int >= T(1) + T(nlI::max())) throw x;  // assert
         return INFINITY != x && -INFINITY != x  &&
-               ((x < -last_non_int || last_non_int < x) || isint_int64(x));
+               ((x < -last_non_int || last_non_int < x) || isint_intN<T,I>(x));
     }
     template<typename T>
     bool isint_modf(T x) noexcept {
         T intpart{};
-        return std::isfinite(x) && std::modf(x, &intpart) == 0.0;
+        return std::isfinite(x) && std::modf(x, &intpart) == 0;
     }
     template<typename T>
     bool isint_nearbyint(T x) noexcept {
@@ -129,40 +131,42 @@
 #if __has_include(<format>) && defined(__cpp_lib_format)
     #include <format>
     #define INFO_D(d)  INFO(std::format("{:a} {:3f} : {:#x} {:d}", d, d, \
-                            static_cast<int64_t>(d),  static_cast<int64_t>(d)));
+                            int64_t(d), int64_t(d)));
 #else
     #define INFO_D(d)  INFO(d)
 #endif
 #include <cfenv>
 #include <cfloat>
 
-#define DT(fn, int64, cexpr, exc_, chk_ ) \
+// Tests (test data) for isint_intN<..., int64_t>()
+static_assert(isint_intN<double> == isint_intN<double, int64_t>);
+#define DT(fn, int64, cexpr, notexc_, chkexc_ ) \
                 template<typename T> \
                 struct fn##_t { \
                     typedef T t; \
                     static const bool is_int64 = int64; \
                     static const bool is_constexpr = sizeof(#cexpr) > 1; \
-                    static const int exc = exc_; \
-                    static const bool chk = chk_; \
+                    static const int notexc = notexc_; \
+                    static const bool chkexc = chkexc_; \
                     static cexpr bool f(T x) noexcept { return fn(x); } \
                 };
 // nearbyint(), modf() - FE_INEXACT is never raised;
 // trunc(), floor(), ceil(), round() - FE_INEXACT is sometimes not raised,
 // system/compiler depended;
-// rint(), static_cast<int64_t>(), x*nlT::denorm_min() - raise FE_INEXACT
+// rint(), int64_t(), x*nlT::denorm_min() - raise FE_INEXACT
 // for non-integer.
 DT(isint_ceil,      false, ,          0,          false);
 DT(isint_denorm,    false, constexpr, 0,          true);
 DT(isint_floor,     false, ,          0,          false);
-DT(isint_int64,     true,  constexpr, 0,          true);
-DT(isint_int64_inf, false, constexpr, 0,          true);
+DT(isint_intN,      true,  constexpr, 0,          true);
+DT(isint_intN_inf,  false, constexpr, 0,          true);
 DT(isint_modf,      false, ,          FE_INEXACT, true);
 DT(isint_nearbyint, false, ,          FE_INEXACT, true);
 DT(isint_rint,      false, ,          0,          true);
 DT(isint_round,     false, ,          0,          false);
 DT(isint_trunc,     false, ,          0,          false);
-#define DT_LIST (isint_ceil_t, isint_denorm_t, isint_floor_t, isint_int64_t, \
-                 isint_int64_inf_t, isint_modf_t, isint_nearbyint_t, \
+#define DT_LIST (isint_ceil_t, isint_denorm_t, isint_floor_t, isint_intN_t, \
+                 isint_intN_inf_t, isint_modf_t, isint_nearbyint_t, \
                  isint_rint_t, isint_round_t, isint_trunc_t)
 
 template<typename T>
@@ -185,12 +189,12 @@ template<typename T>
 const test_cases<T>::case_t test_cases<T>::common[] = {
     {true,  false, NAN},
     {true,  false, std::numeric_limits<T>::quiet_NaN()},
-    {true,  true,  static_cast<T>(0)},
+    {true,  true,  T(0)},
     {true,  false, std::numeric_limits<T>::denorm_min()},
     {true,  false, std::numeric_limits<T>::min()},
-    {true,  false, static_cast<T>(0.1L)},
-    {true,  true,  static_cast<T>(1)},
-    {true,  false, static_cast<T>(1.1L)},
+    {true,  false, T(0.1L)},
+    {true,  true,  T(1)},
+    {true,  false, T(1.1L)},
     {false, true,  std::numeric_limits<T>::max()},
 #ifndef PYTHON_INF_NOT_INT
     {false, true,  std::numeric_limits<T>::infinity()},
@@ -257,8 +261,8 @@ TEMPLATE_PRODUCT_TEST_CASE("Basic tests of isint", "[isint]",
     typedef typename TestType::t T;
     constexpr auto F = TestType::f;
     if constexpr (TestType::is_constexpr) {
-        constexpr auto ce_true = F(static_cast<T>(42.0L));
-        constexpr auto ce_false = F(static_cast<T>(0.42L));
+        constexpr auto ce_true = F(T(42.0L));
+        constexpr auto ce_false = F(T(0.42L));
         CHECK(ce_true);
         CHECK(!ce_false);
     }
@@ -289,28 +293,28 @@ TEMPLATE_PRODUCT_TEST_CASE("Check FE_INEXACT", "[isint]",
                            DT_LIST, F_LIST) {
     typedef typename TestType::t T;
     const auto& F = TestType::f;
-    const auto EXC = TestType::exc;
-    const auto CHK = TestType::chk;
-    volatile T x42_0 = static_cast<T>(42.0L);  // For volatile don't needed
-    volatile T x0_42 = static_cast<T>(0.42L);  // FENV_ACCESS/fenv_access pragmas
+    const auto NOTEXC = TestType::notexc;
+    const auto CHKEXC = TestType::chkexc;
+    volatile T x42_0 = T(42.0L);  // For volatile don't needed
+    volatile T x0_42 = T(0.42L);  // FENV_ACCESS/fenv_access pragmas
     std::feclearexcept(FE_ALL_EXCEPT);
     CHECK(F(x42_0));
     CHECK(!F(x0_42));
     auto fe_inexact = std::fetestexcept(FE_INEXACT);
-    int mask = (CHK ? ~FE_ALL_EXCEPT : 0);
+    int mask = (CHKEXC ? ~FE_ALL_EXCEPT : 0);
     CAPTURE(fe_inexact, mask);
-    CHECK(0 == ((fe_inexact ^ (EXC ^ FE_ALL_EXCEPT)) & mask));
+    CHECK(0 == ((fe_inexact ^ (NOTEXC ^ FE_ALL_EXCEPT)) & mask));
 }
 TEMPLATE_PRODUCT_TEST_CASE("Benchmark", "[isint][!benchmark]",
                            DT_LIST, F_LIST) {
     typedef typename TestType::t T;
     const auto& F = TestType::f;
-    volatile T x42_0 = static_cast<T>(42.0);  // Prevent remove code by optimization
-    T t42_0 = x42_0;;
+    volatile T x42_0 = T(42.0);  // Prevent remove code by optimization
+    T t42_0 = x42_0;
     BENCHMARK("F(t42_0)") {
         return F(t42_0);
     };
-    volatile T x0_42 = static_cast<T>(0.42L);  // Prevent remove code by optimization
+    volatile T x0_42 = T(0.42L);  // Prevent remove code by optimization
     T t0_42 = x0_42;
     BENCHMARK("F(t0_42)") {
         return F(t0_42);
