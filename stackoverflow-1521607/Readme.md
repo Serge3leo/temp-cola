@@ -116,8 +116,8 @@ If `constexpr` is not required, then the options are simplest
 performance for any input arguments. IMHO, CPython implementation
 `float.is_integer()` uses `floor()`.
 
-GCC 14 (or the pre-release version of GCC 15) has incomplete support
-for `float128_t` (on budget processors, not POWER/SPARC).
+GCC 14 (or pre-release version of GCC 15) has incomplete support
+for `float128_t` (for budget processors, not POWER/SPARC).
 Therefore, in strict compliance with the standard, only one
 option is possible: `isint_denorm()'. In addition, non-standard integer
 types can be used: `isint_intN<float128_t, __int128>()`
