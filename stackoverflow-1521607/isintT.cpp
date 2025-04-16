@@ -19,25 +19,25 @@
 // #define PYTHON_INF_NOT_INT (1)
 
 #ifndef PYTHON_INF_NOT_INT
-    template<typename T>
+    template <typename T>
     bool isint_ceil(T x) noexcept {
         return std::ceil(x) == x;
     }
-    template<typename T>
+    template <typename T>
     constexpr bool isint_denorm(T x) noexcept {
         using nlT = std::numeric_limits<T>;
         static_assert(nlT::denorm_min() != nlT::min());
         return ((x*nlT::denorm_min())/nlT::denorm_min()) == x;
     }
-    template<typename T>
+    template <typename T>
     bool isint_floor(T x) noexcept {
         return std::floor(x) == x;
     }
-    template<typename T, typename I = int64_t>
+    template <typename T, typename I = int64_t>
     constexpr bool isint_intN(T x) noexcept {
         return static_cast<T>(static_cast<I>(x)) == x;
     }
-    template<typename T, typename I = int64_t, typename U = uint64_t>
+    template <typename T, typename I = int64_t, typename U = uint64_t>
     constexpr bool isint_intN_inf(T x) noexcept {
         using nlT = std::numeric_limits<T>;
         using nlI = std::numeric_limits<I>;
@@ -46,47 +46,47 @@
         if constexpr (last_non_int >= T(1) + T(nlI::max())) throw x;  // assert
         return (x < -last_non_int || last_non_int < x) || isint_intN<T,I>(x);
     }
-    template<typename T>
+    template <typename T>
     bool isint_modf(T x) noexcept {
         T intpart{};
         return std::modf(x, &intpart) == 0;
     }
-    template<typename T>
+    template <typename T>
     bool isint_nearbyint(T x) noexcept {
         return std::nearbyint(x) == x;
     }
-    template<typename T>
+    template <typename T>
     bool isint_rint(T x) noexcept {
         return std::rint(x) == x;
     }
-    template<typename T>
+    template <typename T>
     bool isint_round(T x) noexcept {
         return std::round(x) == x;
     }
-    template<typename T>
+    template <typename T>
     bool isint_trunc(T x) noexcept {
         return std::trunc(x) == x;
     }
 #else
-    template<typename T>
+    template <typename T>
     bool isint_ceil(T x) noexcept {
         return std::ceil(x) - x == 0;
     }
-    template<typename T>
+    template <typename T>
     constexpr bool isint_denorm(T x) noexcept {
         using nlT = std::numeric_limits<T>;
         static_assert(nlT::denorm_min() != nlT::min());
         return ((x*nlT::denorm_min())/nlT::denorm_min()) - x == 0;
     }
-    template<typename T>
+    template <typename T>
     bool isint_floor(T x) noexcept {
         return std::floor(x) - x == 0;
     }
-    template<typename T, typename I  = int64_t>
+    template <typename T, typename I  = int64_t>
     constexpr bool isint_intN(T x) noexcept {
         return static_cast<T>(static_cast<I>(x)) - x == 0;
     }
-    template<typename T, typename I = int64_t, typename U = uint64_t>
+    template <typename T, typename I = int64_t, typename U = uint64_t>
     constexpr bool isint_intN_inf(T x) noexcept {
         using nlT = std::numeric_limits<T>;
         using nlI = std::numeric_limits<I>;
@@ -96,24 +96,24 @@
         return INFINITY != x && -INFINITY != x  &&
                ((x < -last_non_int || last_non_int < x) || isint_intN<T,I>(x));
     }
-    template<typename T>
+    template <typename T>
     bool isint_modf(T x) noexcept {
         T intpart{};
         return std::isfinite(x) && std::modf(x, &intpart) == 0;
     }
-    template<typename T>
+    template <typename T>
     bool isint_nearbyint(T x) noexcept {
         return std::nearbyint(x) - x == 0;
     }
-    template<typename T>
+    template <typename T>
     bool isint_rint(T x) noexcept {
         return std::rint(x) - x == 0;
     }
-    template<typename T>
+    template <typename T>
     bool isint_round(T x) noexcept {
         return std::round(x) - x == 0;
     }
-    template<typename T>
+    template <typename T>
     bool isint_trunc(T x) noexcept {
         return std::trunc(x) - x == 0;
     }
@@ -133,7 +133,7 @@
     #include <format>
     // gcc unimplemented std::format() for std::float128_t
     // clang bug for long double
-    template<typename T>
+    template <typename T>
     void INFO_D(T d) {
         double hi = double(d);
         double lo = double(d - T(hi));
@@ -157,15 +157,15 @@
 // Tests (test data) for isint_intN<..., int64_t>()
 static_assert(isint_intN<double> == isint_intN<double, int64_t>);
 #define DT(fn, intN, std, cexpr, notexc_, chkexc_ ) \
-                template<typename T> \
-                struct fn##_t { \
-                    typedef T t; \
-                    static const bool is_intN = intN; \
-                    static const bool is_std = std; \
+                template <typename T>                                    \
+                struct fn##_t {                                          \
+                    typedef T t;                                         \
+                    static const bool is_intN = intN;                    \
+                    static const bool is_std = std;                      \
                     static const bool is_constexpr = sizeof(#cexpr) > 1; \
-                    static const int notexc = notexc_; \
-                    static const bool chkexc = chkexc_; \
-                    static cexpr bool f(T x) noexcept { return fn(x); } \
+                    static const int notexc = notexc_;                   \
+                    static const bool chkexc = chkexc_;                  \
+                    static cexpr bool f(T x) noexcept { return fn(x); }  \
                 };
 // nearbyint(), modf() - FE_INEXACT is never raised;
 // trunc(), floor(), ceil(), round() - FE_INEXACT is sometimes not raised,
@@ -183,9 +183,9 @@ DT(isint_rint,      false, true,  ,          0,          true);
 DT(isint_round,     false, true,  ,          0,          false);
 DT(isint_trunc,     false, true,  ,          0,          false);
 #define DT_LIST (isint_ceil_t, isint_denorm_t, isint_floor_t, isint_intN_t, \
-                 isint_intN_inf_t, isint_modf_t, isint_nearbyint_t, \
+                 isint_intN_inf_t, isint_modf_t, isint_nearbyint_t,         \
                  isint_rint_t, isint_round_t, isint_trunc_t)
-template<typename T>
+template <typename T>
 struct test_cases {
     struct case_t {
         bool domain_intN;
@@ -195,13 +195,13 @@ struct test_cases {
     static const case_t common[];
     static const case_t bytarg[];
     static constexpr size_t common_size() {
-       return sizeof(common)/sizeof(common[0]);
+        return sizeof(common) / sizeof(common[0]);
     }
     static constexpr size_t bytarg_size() {
-       return sizeof(bytarg)/sizeof(bytarg[0]);
+        return sizeof(bytarg) / sizeof(bytarg[0]);
     }
 };
-template<typename T>
+template <typename T>
 const test_cases<T>::case_t test_cases<T>::common[] = {
     {true,  false, NAN},
     {true,  false, std::numeric_limits<T>::quiet_NaN()},
@@ -220,7 +220,7 @@ const test_cases<T>::case_t test_cases<T>::common[] = {
     {false, false, INFINITY},
 #endif
 };
-template<>
+template <>
 const test_cases<float>::case_t test_cases<float>::bytarg[] = {
     {true,  false,           0x7ffffe.8p0f},
     {true,  true,            0x7fffff.0p0f},
@@ -235,7 +235,7 @@ const test_cases<float>::case_t test_cases<float>::bytarg[] = {
     {false, true,  0x8000010000000000.0p0f},
     {false, true,  0x8000020000000000.0p0f},
 };
-template<>
+template <>
 const test_cases<double>::case_t test_cases<double>::bytarg[] = {
     {true,  false,    0xffffffffffffe.8p0},
     {true,  true,     0xfffffffffffff.0p0},
@@ -257,7 +257,7 @@ template struct test_cases<double>;
 #else
     static_assert(64 == std::numeric_limits<long double>::digits);
     #define FL_LD80_BINARY64_EXT  , long double
-    template<>
+    template <>
     const test_cases<long double>::case_t test_cases<long double>::bytarg[] = {
         {true,  false, 0x7ffffffffffffffc.8p0L},
         {true,  true,  0x7ffffffffffffffd.0p0L},
@@ -292,15 +292,15 @@ template struct test_cases<double>;
     #endif
     static_assert(113 == std::numeric_limits<t_float128_t>::digits);
     #define FL_FLOAT128_T  , t_float128_t
-    template<>
+    template <>
     constexpr bool isint_intN<t_float128_t>(t_float128_t x) noexcept {
         return isint_intN<t_float128_t, __int128>(x);
     }
-    template<>
+    template <>
     constexpr bool isint_intN_inf<t_float128_t>(t_float128_t x) noexcept {
         return isint_intN_inf<t_float128_t, __int128, unsigned __int128>(x);
     }
-    template<>
+    template <>
     const test_cases<t_float128_t>::case_t test_cases<t_float128_t>::bytarg[] = {
         {true,   false,     0xfffffffffffffffffffffffffffe.8p0f128},
         {true,   true,      0xffffffffffffffffffffffffffff.0p0f128},
@@ -339,8 +339,8 @@ TEMPLATE_PRODUCT_TEST_CASE("Basic tests of isint", "[isint]",
             }
             CAPTURE(t.domain_intN, t.isint);
             INFO_D(t.d);
-            CHECK((!t.isint)^F(t.d));
-            CHECK((!t.isint)^F(-t.d));
+            CHECK((!t.isint) ^ F(t.d));
+            CHECK((!t.isint) ^ F(-t.d));
         }
         for (auto t : test_cases<T>::bytarg) {
             if constexpr (TestType::is_intN) {
