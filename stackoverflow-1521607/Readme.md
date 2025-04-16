@@ -2,13 +2,13 @@
 
 I came across an old question:
 [Check double variable if it contains an integer, and not floating point](https://stackoverflow.com/q/1521607/8585880),
-17 answers, but somehow everything is without a system. And the question 
-is interesting, as we say, with a trick. Especially in light of the latest 
-C++ innovations (`constexpr`, etc.).
+17 answers, but somehow everything is without a system. And the question
+is interesting, as we say, with a trick. Especially in light of the latest
+C++ innovations (`constexpr`, `float128_t`, etc.).
 
-Probably, the simplest ways should be considered: 
-`std::int(x) == x`, `std::ceil(x) == x`, as the shortest ones. However, 
-they are not exactly identical, and also slightly different from the 17 
+Probably, the simplest ways should be considered:
+`std::int(x) == x`, `std::ceil(x) == x`, as the shortest ones. However,
+they are not exactly identical, and also slightly different from the 17
 others methods.
 
 Main issues and features:
@@ -22,7 +22,7 @@ Main issues and features:
    values (see other expressions in `isint_denorm()`, `isint_intN_inf()`
    and `isint_intN_inf()` below);
 3. `FE_INEXACT`, by C/C++ standards, `std::rint()` always registers
-   (or causes) a `FE_INEXACT` exception for non-integers, but for 
+   (or causes) a `FE_INEXACT` exception for non-integers, but for
    `std::ceil()` this will be determined by the implementation.
    It should be noted that working with the FPU state can lead to
    a noticeable drop in performance when running on virtual machines
@@ -30,9 +30,12 @@ Main issues and features:
 4. Performance, theoretically, since `std::rint()` uses
    the current rounding method, while `std::ceil()` rounds toward positive,
    `std::rint()` may be more efficient (but the efficiency may also be
-   affected by the previous paragraph).
+   affected by the previous paragraph);
+5. Type support, incomplete ones are found for `float128_t`
+   implementations without `std::rint()`, `std::ceil()`, etc. (see
+   `isint_denorm()`, etc).
 
-10 ways to check integral value of a floating number with a single 
+10 ways to check integral value of a floating number with a single
 expression:
 
 ```
@@ -110,8 +113,15 @@ be worse even than `std::modf()`.
 
 If `constexpr` is not required, then the options are simplest
 `std::ceil()`/`std::floor()`/`std::trunk()` is a good choice with stable
-performance for any input arguments. IMHO, CPython implementation 
+performance for any input arguments. IMHO, CPython implementation
 `float.is_integer()` uses `floor()`.
+
+GCC 14 (or the pre-release version of GCC 15) has incomplete support
+for `float128_t` (on budget processors, not POWER/SPARC).
+Therefore, in strict compliance with the standard, only one
+option is possible: `isint_denorm()'. In addition, non-standard integer
+types can be used: `isint_intN<float128_t, __int128>()`
+и `isint_intN_inf<float128_t, __int128, unsigned __int128>()`.
 
 The source code of Python-compatible variants `float.is_integer()`, and the tests:
 [https://github.com/Serge3leo/temp-cola/blob/main/stackoverflow-1521607/isintT.cpp](https://github.com/Serge3leo/temp-cola/blob/main/stackoverflow-1521607/isintT.cpp)
