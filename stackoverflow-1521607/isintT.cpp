@@ -137,9 +137,9 @@
     void INFO_D(T d) {
         double hi = double(d);
         double lo = double(d - T(hi));
-        const T limb = T(1e19f128);
-        uint64_t ihi = d/limb;
-        uint64_t ilo = d - T(ihi)*limb;
+        const T limb = T(1e19);
+        uint64_t ihi = uint64_t(d/limb);
+        uint64_t ilo = uint64_t(d - T(ihi)*limb);
         UNSCOPED_INFO(std::format(
                       "{:a},{:a} {:.17g},{:.17g} : "
                       "{:#x}*{:#x}+{:#x} {:d}*{:d}+{:d}",
@@ -154,7 +154,6 @@
 #if __has_include(<stdfloat>)
     #include <stdfloat>
 #endif
-
 // Tests (test data) for isint_intN<..., int64_t>()
 static_assert(isint_intN<double> == isint_intN<double, int64_t>);
 #define DT(fn, intN, std, cexpr, notexc_, chkexc_ ) \
@@ -186,7 +185,6 @@ DT(isint_trunc,     false, true,  ,          0,          false);
 #define DT_LIST (isint_ceil_t, isint_denorm_t, isint_floor_t, isint_intN_t, \
                  isint_intN_inf_t, isint_modf_t, isint_nearbyint_t, \
                  isint_rint_t, isint_round_t, isint_trunc_t)
-
 template<typename T>
 struct test_cases {
     struct case_t {
@@ -275,9 +273,10 @@ template struct test_cases<double>;
     };
     template struct test_cases<long double>;
 #endif
-#if !(defined(__STDCPP_FLOAT128_T__) || 113 != LDBL_MANT_DIG)
+#if !(defined(__STDCPP_FLOAT128_T__) || 113 == LDBL_MANT_DIG)
     #define FL_FLOAT128_T
-    // TODO suffix in TEMPLATE_PRODUCT_TEST_CASE() code
+    typedef void t_float128_t;
+    const bool t_float128_t_skip_std = false;
 #else
     #if 113 == LDBL_MANT_DIG
         typedef long double t_float128_t;
@@ -318,6 +317,7 @@ template struct test_cases<double>;
     };
 #endif
 #define F_LIST (float, double FL_LD80_BINARY64_EXT FL_FLOAT128_T)
+// TODO:decoration: suffix in TEMPLATE_PRODUCT_TEST_CASE() code
 TEMPLATE_PRODUCT_TEST_CASE("Basic tests of isint", "[isint]",
                            DT_LIST, F_LIST) {
     typedef typename TestType::t T;
