@@ -112,7 +112,7 @@ save/restore FPU state, so when working on virtual machines, it can
 be worse even than `std::modf()`.
 
 If `constexpr` is not required, then the options are simplest
-`std::ceil()`/`std::floor()`/`std::trunk()` is a good choice with stable
+`std::ceil()`/`std::floor()`/`std::trunc()` is a good choice with stable
 performance for any input arguments. IMHO, CPython implementation
 `float.is_integer()` uses `floor()`.
 
