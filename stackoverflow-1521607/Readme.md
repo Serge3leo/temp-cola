@@ -117,9 +117,9 @@ performance for any input arguments. IMHO, CPython implementation
 `float.is_integer()` uses `floor()`.
 
 GCC 14 (or pre-release version of GCC 15) has incomplete support
-for `float128_t` (for budget processors, not POWER/SPARC).
-Therefore, in strict compliance with the standard, only one
-option is possible: `isint_denorm()`. In addition, non-standard integer
+for `float128_t` (if not _GLIBCXX_LDOUBLE_IS_IEEE_BINARY128, not 
+ARMv9/POWER/SPARC). Therefore, in strict compliance with the standard, only 
+one option is possible: `isint_denorm()`. In addition, non-standard integer
 types can be used: `isint_intN<float128_t, __int128>()`
 и `isint_intN_inf<float128_t, __int128, unsigned __int128>()`.
 
