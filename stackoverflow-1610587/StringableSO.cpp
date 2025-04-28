@@ -21,7 +21,8 @@ concept TO_Charsable =
         // https://github.com/llvm/llvm-project/issues/62282
         // См. примечание к P0067R5 в https://libcxx.llvm.org/Status/Cxx17.html
         (!std::is_same_v<T, long double> ||
-         std::is_same_v<double, long double>) &&
+         std::numeric_limits<long double>::digits ==
+         std::numeric_limits<double>::digits) &&
     #endif
 requires(T x, char* first, char* last) {
     {std::to_chars(first, last, x)} -> std::same_as<std::to_chars_result>;
@@ -32,7 +33,8 @@ requires(T x, char* first, char* last) {
     concept Formattable =
         #if defined(__clang__) && defined(_LIBCPP_VERSION)
             (!std::is_same_v<T, long double> ||
-             std::is_same_v<double, long double>) &&
+             std::numeric_limits<long double>::digits ==
+             std::numeric_limits<double>::digits) &&
         #endif
         std::formattable<T, char>;
         // Паллиатив: std::is_default_constructible_v<std::formatter<T>>;
