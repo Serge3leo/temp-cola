@@ -9,7 +9,6 @@
 #include <cfloat>
 
 #include <Eigen/Dense>
-#include <Eigen/Eigenvalues>
 #include <Eigen/QR>
 
 using namespace Eigen;
