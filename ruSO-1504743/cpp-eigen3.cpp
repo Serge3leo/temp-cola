@@ -7,9 +7,6 @@
 
 #include <cassert>
 #include <cfloat>
-#include <cmath>
-#include <complex>
-#include <iostream>
 
 #include <Eigen/Dense>
 #include <Eigen/Eigenvalues>
@@ -42,6 +39,11 @@ Vector2d fixed_point(Vector2d& rm, Matrix<double, 4, 2>& cr) {
     assert(f.isApprox(a*f, 20*DBL_EPSILON) && "Нехороший план");
     return f.head<2>();
 }
+
+// Тесты
+#include <cmath>
+#include <iostream>
+
 struct test_case {
     Vector2d rm;
     Matrix<double, 4, 2> cr;
