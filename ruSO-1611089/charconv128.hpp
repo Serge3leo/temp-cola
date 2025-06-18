@@ -11,6 +11,7 @@
 #ifdef __has_include
 #if __has_include(<stdfloat>) && __has_include(<quadmath.h>)
 #include <charconv>
+#include <cmath>
 #include <cstring>
 #include <limits>
 #include <stdfloat>
@@ -30,15 +31,10 @@ from_chars(const char *first, const char *last, std::float128_t &value,
     return (sp > start ? from_chars_result{first + (sp - start), std::errc{}}
                        : from_chars_result{first, std::errc::invalid_argument});
 }
-template <class T>
-int cc128_calculate_precision_(T value, std::chars_format) {
-    // TODO: smallest precision for recovers value exactly by from_chars()
-    return std::numeric_limits<T>::max_digits10 - 1;
-}
 to_chars_result
 to_chars(char* first, char* last, std::float128_t value,
          std::chars_format fmt = std::chars_format::general,
-         int precision = 0) noexcept {
+         int precision = -1) noexcept {
     const char *f;
     switch (fmt) {
      case std::chars_format::fixed:
@@ -56,20 +52,56 @@ to_chars(char* first, char* last, std::float128_t value,
      default:
         return {first, std::errc::invalid_argument};
     }
-    if (0 >= precision) {
-        if (std::chars_format::hex == fmt) {
-            precision = std::numeric_limits<std::float128_t>::digits/4;
-        } else {
-            precision = cc128_calculate_precision_(value, fmt);
+    int pprecission = precision;
+    size_t pwidth = last - first;
+    if (-1 == precision) {
+        switch (fmt) {
+         case std::chars_format::fixed:
+            std::float128_t l10v = log10q(value);
+            pprecision = std::max(0,
+                        std::numeric_limits<std::float128_t>::max_digits10 -
+                        int(floorq(l10v)));
+            pwidth = 3 + size_t(ceilq(l10v)) + pprecision;
+            break;
+         case std::chars_format::scientific:
+         case std::chars_format::general:
+            pprecision = std::numeric_limits<std::float128_t>::max_digits10;
+            pwidth = 8 + pprecision;
+            break;
+         case std::chars_format::hex:
+            pprecision = std::numeric_limits<std::float128_t>::digits/4;
+            pwidth = 11 + pprecision;
+            break;
+         default:
+            return {first, std::errc::invalid_argument};
         }
     }
-    std::string ss(last - first + 1, '\0');
-    int len = quadmath_snprintf(ss.data(), ss.size(), f, precision, value);
-    if (0 < len && len <= last - first) {
+    std::string ss(pwidth + 1, '\0');
+    int len = quadmath_snprintf(ss.data(), ss.size(), f, pprecision, value);
+    if (0 < len && len <= pwidth) {
+        if (-1 == precision) {
+            // TODO: Shortest representation: smallest number of chars
+            // pprecision = ... ; len = ... ; etc...
+            #ifndef NDEBUG
+                std::float128_t netxs[] = {nextafterq(value, -INFINITY),
+                                           nextafterq(value, INFINITY)};
+                std::string snext(len + pprecision + 1, '\0');
+                for (const auto& next : netxs) {
+                    int slen = quadmath_snprintf(snext.data(), snext.size(),
+                                                 f, pprecision, value);
+                    assert(0 < slen && slen <= snext.size());
+                    assert(std::string(ss.data(), len)
+                           != std::string(snext.data(), slen);
+                }
+            #endif
+            if (len > last - first) {
+                return {last, std::errc::value_too_large};
+            }
+        }
         memcpy(first, ss.data(), len);
         return {first + len, std::errc{}};
     }
-    return {first, std::errc::invalid_argument};
+    return {last, std::errc::value_too_large};
 }
 }
 #endif // __has_include(<stdfloat>) && __has_include(<quadmath.h>)
