@@ -132,7 +132,7 @@ namespace charconv_repair { namespace imp {
             return {first, std::errc::invalid_argument};
         }
         int pprecision = precision;
-        int pwidth = last - first;
+        int pwidth = int(last - first);
         if (-1 == precision) {
             // TODO: Shortest representation: smallest number of chars
             // pprecision = ... ; len = ... ; etc...
@@ -143,7 +143,7 @@ namespace charconv_repair { namespace imp {
                     pprecision = std::max(0,
                                     std::numeric_limits<F>::max_digits10 -
                                     int(f_t<F>::floor(l10v)));
-                    pwidth = 3 + size_t(f_t<F>::ceil(l10v)) + pprecision;
+                    pwidth = 3 + int(f_t<F>::ceil(l10v)) + pprecision;
                 }
                 break;
              case std::chars_format::scientific:

@@ -26,8 +26,12 @@
 // Use Catch2: https://github.com/catchorg/Catch2/
 // Header-only (without installing etc.), see:
 // https://github.com/catchorg/Catch2/tree/v2.x/single_include/catch2
-#define CATCH_CONFIG_MAIN
-#include "catch.hpp"
+#if __has_include("catch2/catch.hpp")
+    #define CATCH_CONFIG_MAIN
+    #include "catch2/catch.hpp"
+#else
+    #include <catch2/catch_all.hpp>
+#endif
 
 using namespace std;
 

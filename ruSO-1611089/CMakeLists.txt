@@ -17,19 +17,27 @@ project(float_format
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 
+if (NOT WANT_SINGLE_INCLUDE)
+    find_package(Catch2 3 REQUIRED)
+endif()
+
+if (NOT WIN32)
+    string(APPEND CMAKE_CXX_FLAGS " -Wall -Wextra -Werror")
+else()
+    string(APPEND CMAKE_CXX_FLAGS 
+	" /W4 /WX /D_CRT_SECURE_NO_WARNINGS")
+	#" /I\"..\\..\\..\\contrib\\Catch2-v2.x\\single_include\"")
+endif()
+
 # charconv_repair.hpp использует quadmath для GNU g++
 if(CMAKE_COMPILER_IS_GNUCXX)
     add_link_options(-lquadmath)
 endif()
 
 add_executable(test_charconv_repair test_charconv_repair.cpp)
-target_include_directories(test_charconv_repair PRIVATE catch2)
-
-if(MSVC)
-    target_compile_options(test_charconv_repair PRIVATE
-	/W4 /WX /D_CRT_SECURE_NO_WARNINGS)
+if (NOT WANT_SINGLE_INCLUDE)
+    target_link_libraries(test_charconv_repair PRIVATE Catch2::Catch2WithMain)
 else()
-    target_compile_options(test_charconv_repair PRIVATE -Wall -Wextra -Werror)
+    target_include_directories(test_charconv_repair PRIVATE
+	"../contrib/Catch2-v2.x/single_include")
 endif()
-
-
