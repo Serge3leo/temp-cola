@@ -7,6 +7,6 @@ rem 2025-06-26 06:48:47 - Создан.
 
 md build\vs17_2022
 cd build\vs17_2022
-cmake -DWANT_SINGLE_INCLUDE:BOOL=1 ..\..
+cmake ..\..
 start .
 

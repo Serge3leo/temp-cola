@@ -31,9 +31,6 @@ Darwin_add_opts() {
 	    -DCMAKE_EXE_LINKER_FLAGS=$lf" \
 	    $Darwin_clang_ver $Darwin_clang_ver $Darwin_clang_ver
 	;;
-     g++*)
-	printf -- "-DWANT_SINGLE_INCLUDE:BOOL=1"
-	;;
     esac
 }
 Darwin_cmpl() { default_cmpl; }
@@ -42,8 +39,7 @@ FreeBSD_add_cmpls="g++$FreeBSD_gcc_ver"
 FreeBSD_add_opts() {
     case "$1" in
      g++*)
-	printf -- "-DCMAKE_EXE_LINKER_FLAGS=-Wl,-rpath=/usr/local/lib/gcc%d
-	    -DWANT_SINGLE_INCLUDE:BOOL=1" \
+	printf -- "-DCMAKE_EXE_LINKER_FLAGS=-Wl,-rpath=/usr/local/lib/gcc%d" \
 	    $FreeBSD_gcc_ver
 	;;
     esac
