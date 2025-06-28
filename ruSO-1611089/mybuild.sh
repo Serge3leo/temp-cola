@@ -10,7 +10,7 @@ set -e
 
 default_cmpl() {
     make
-    ./test_charconv_repair
+    ctest
 }
 Xcode_add_cmpls=
 Xcode_add_opts() {
@@ -91,7 +91,7 @@ for c in $cmpls ; do
 	    cd "build/$dir"
 	fi
 	if $clean ; then
-	    rm -r *
+	    rm -rf ../../build/$dir/*
 	else
 	    cmake $args ../..
 	    "${platform}_cmpl"

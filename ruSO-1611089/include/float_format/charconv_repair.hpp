@@ -4,15 +4,15 @@
 // История:
 // 2025-05-02 08:28:06 - Создан.
 //
+// Концепции `charconv_repair::has_std_from_chars<T>` и
+// `charconv_repair::has_std_from_chars<T>` проверяют наличие корректных
+// функций `std::from_chars()/std::to_chars()`.
+//
 // Функции `charconv_repair::imp::from_chars()` и
 // `charconv_repair::imp::to_chars()` на основе
 // `strtold()/strtoflt128()/snprintf()/quadmath_snprintf()` для дополнения
 // реализации `std::float128_t` g++ (неполна везде, кроме linux [TODO] glibc) и
 // замены некорректной реализации `long double` clang++ libc++.
-//
-// Концепции `charconv_repair::has_std_from_chars<T>` и
-// `charconv_repair::has_std_from_chars<T>` проверяют наличие корректных
-// функций `std::from_chars()/std::to_chars()`.
 //
 // Функции `charconv_repair::from_chars()` и `charconv_repair::to_chars()`
 // совпадают, либо с функциями `std::`, либо с функциями `charconv_repair::`.
@@ -42,6 +42,27 @@
     #include <quadmath.h>  // Need: -lquadmath
 #endif
 
+namespace charconv_repair {
+    template <class T>
+    concept has_std_from_chars =
+    requires(const char* first, const char* last, T& x) {
+        {std::from_chars(first, last, x)} ->
+                std::same_as<std::from_chars_result>;
+    };
+    template <class T>
+    concept has_std_to_chars =
+        #if defined(__clang__) && defined(_LIBCPP_VERSION)
+            // https://github.com/llvm/llvm-project/issues/62282
+            // См. примечание к P0067R5 в
+            // https://libcxx.llvm.org/Status/Cxx17.html
+            (!std::is_same_v<T, long double> ||
+             std::numeric_limits<long double>::digits ==
+             std::numeric_limits<double>::digits) &&
+        #endif
+    requires(char* first, char* last, T x) {
+        {std::to_chars(first, last, x)} -> std::same_as<std::to_chars_result>;
+    };
+}
 namespace charconv_repair { namespace imp {
     template<class F>
     struct f_t {
@@ -186,22 +207,6 @@ namespace charconv_repair { namespace imp {
     }
 }}
 namespace charconv_repair {
-    template <class T>
-    concept has_std_from_chars =
-    requires(const char* first, const char* last, T& x) {
-        {std::from_chars(first, last, x)} ->
-                std::same_as<std::from_chars_result>;
-    };
-    template <class T>
-    concept has_std_to_chars =
-        #if defined(__clang__) && defined(_LIBCPP_VERSION)
-            (!std::is_same_v<T, long double> ||
-             std::numeric_limits<long double>::digits ==
-             std::numeric_limits<double>::digits) &&
-        #endif
-    requires(char* first, char* last, T x) {
-        {std::to_chars(first, last, x)} -> std::same_as<std::to_chars_result>;
-    };
     template <has_std_from_chars F>
     std::from_chars_result
     from_chars(const char *first, const char *last, F &value,

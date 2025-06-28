@@ -6,9 +6,8 @@
 //
 
 #define __STDC_WANT_IEC_60559_BFP_EXT__  (1)  // for strfrom*() family
-#define WANT_STD_REPAIR  (1)
 
-#include "charconv_repair.hpp"
+#include "float_format/charconv_repair.hpp"
 
 #include <cassert>
 #include <cfloat>
@@ -22,15 +21,13 @@
 #endif
 #include <string>
 #include <typeinfo>
+#include <utility>
 
-// Use Catch2: https://github.com/catchorg/Catch2/
-// Header-only (without installing etc.), see:
-// https://github.com/catchorg/Catch2/tree/v2.x/single_include/catch2
-#if __has_include("catch2/catch.hpp")
-    #define CATCH_CONFIG_MAIN
-    #include "catch2/catch.hpp"
-#else
+#ifndef CATCH2_SINGLE_INCLUDE
     #include <catch2/catch_all.hpp>
+#else
+    #undef CATCH_CONFIG_MAIN
+    #include "catch2/catch.hpp"
 #endif
 
 using namespace std;
@@ -85,8 +82,10 @@ struct fix {
                 len = strfromd(buf, sizeof(buf), fmt, fmt_t(x));
             } else if constexpr (std::is_same_v<long double, fmt_t>) {
                 len = strfroml(buf, sizeof(buf), fmt, fmt_t(x));
-            } else if constexpr (std::is_same_v<void, fmt_t>) {
-                len = strfromf128(buf, sizeof(buf), fmt, x);
+            #ifdef FLT128_MANT_DIG
+                } else if constexpr (std::is_same_v<void, fmt_t>) {
+                    len = strfromf128(buf, sizeof(buf), fmt, x);
+            #endif
             }
             REQUIRE(size_t(len) < sizeof(buf));
             return string(buf, size_t(len));
@@ -107,12 +106,14 @@ struct fix {
             return std::strtod(str, str_end);
         } else if constexpr (std::is_same_v<long double, fmt_t>) {
             return std::strtold(str, str_end);
-        #if __STDC_IEC_60559_BFP__
+        #if __STDC_IEC_60559_BFP__ && defined(FLT128_MANT_DIG)
             } else if constexpr (std::is_same_v<void, fmt_t>) {
                 return strtof128(str, str_end);
         #endif
         }
-        // return NAN;
+        #if __cpp_lib_unreachable
+            std::unreachable();  // return NAN;
+        #endif
     }
     static string test_to_chars(T x) {
         const auto check_ = check;
@@ -129,7 +130,8 @@ struct fix {
     }
     static T test_from_chars(const string& buf) {
         T x;
-        auto res = charconv_repair::from_chars(buf.data(), buf.data() + buf.size(), x);
+        auto res = charconv_repair::from_chars(buf.data(),
+                                               buf.data() + buf.size(), x);
         REQUIRE(std::errc{} == res.ec);
         REQUIRE(intptr_t(buf.size()) == res.ptr - buf.data());
         return x;
@@ -206,7 +208,8 @@ template <class T>
 struct t_to_from_chars {
     using type = T;
     static constexpr bool skip() {
-        return !charconv_repair::has_to_chars<T> || !charconv_repair::has_from_chars<T>;
+        return !charconv_repair::has_to_chars<T> ||
+               !charconv_repair::has_from_chars<T>;
     }
     void test(const T x) {
         std::string t = fix<T>::test_to_chars(x);
@@ -221,7 +224,7 @@ struct t_to_from_chars {
 #else
     #define F_LIST (float, double)
 #endif
-TEMPLATE_PRODUCT_TEST_CASE("to_from_chars", "[to_chars][from_chars]",
+TEMPLATE_PRODUCT_TEST_CASE("from_to_chars", "[to_chars][from_chars]",
             (t_snprintf, t_sscanf, t_strtoT,
              t_to_chars, t_from_chars, t_to_from_chars),
             F_LIST
@@ -245,21 +248,4 @@ TEMPLATE_PRODUCT_TEST_CASE("to_from_chars", "[to_chars][from_chars]",
                   << typeid(TestType).name() << ": "
                   << typeid(T).name() << '\n';
     }
-}
-TEST_CASE("Compilers & versions") {
-    std::cout << "C++: " << __cplusplus << ", "
-        #if defined(__GNUC__)
-            #if defined(__clang__)
-                << "clang++: "
-            #else
-                << "GNU g++: "
-            #endif
-            << __VERSION__ << ", "
-        #elif defined(_MSC_VER)
-            "MSVC: " << _MSC_FULL_VER << ", "
-        #else
-            "Unknown compiler"
-        #endif
-        << "Catch2: " << Catch::libraryVersion()
-        << '\n';
 }
