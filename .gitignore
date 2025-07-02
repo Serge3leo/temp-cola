@@ -1090,3 +1090,6 @@ dkms.conf
 
 # Codespaces
 venv/
+
+# Deprecated codecov.io uploader (referenced from CMake-codecov)
+contrib/codecov.io_250630/

@@ -5,3 +5,6 @@
 [submodule "Catch2-v3.x"]
 	path = contrib/Catch2-v3.x
 	url = git@github.com:catchorg/Catch2.git
+[submodule "contrib/CMake-codecov"]
+	path = contrib/CMake-codecov
+	url = git@github.com:RWTH-HPC/CMake-codecov.git
