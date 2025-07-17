@@ -11,7 +11,9 @@ dependencies:
   - fortran-magic
   - lapack
   - meson
+  - matplotlib
   - ninja
+  - pillow
   - pip
   - pkgconfig
 ...
