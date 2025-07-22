@@ -38,7 +38,7 @@ elseif("subdirectory" STREQUAL FF_CATCH2_FROM)
     # TODO: Use `rm -rf rm -rf build/Platform-Compiler/*` for clean
     # TODO: SYSTEM EXCLUDE_FROM_ALL
     # TODO:site_name(CATCH2_SITE) или CMAKE_SYSTEM_NAME или CMAKE_SYSTEM_VERSION
-    set(FF_CATCH2_DIR "${PROJECT_SOURCE_DIR}/../contrib/Catch2-v3.x")
+    set(FF_CATCH2_DIR "${PROJECT_SOURCE_DIR}/../../contrib/Catch2-v3.x")
     get_filename_component(FF_CATCH_CXX "${CMAKE_CXX_COMPILER}" NAME)
     string(CONCAT FF_CATCH2_BIN_DIR "${FF_CATCH2_DIR}/build/"
                                     "${CMAKE_SYSTEM_NAME}-"
