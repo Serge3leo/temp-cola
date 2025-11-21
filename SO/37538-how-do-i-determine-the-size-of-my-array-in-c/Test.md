@@ -5,6 +5,8 @@ https://docs.github.com/en/get-started/writing-on-github/getting-started-with-wr
 
 The background color is `#ffffff` for light mode and `#000000` for dark mode.
 
+The background color is #ffffff for light mode and #000000 for dark mode.
+
 
 | Color	| Syntax	| Example	| Output |
 | - | - | - | - |
