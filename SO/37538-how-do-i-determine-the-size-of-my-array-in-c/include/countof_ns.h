@@ -31,26 +31,34 @@
 //
 //     - C23 или C++11;
 //
-//     - С11 c расширением `__typeof__()` (clang, gcc, MSVC, Sun C, ...);
+//     - С11 c расширением `__typeof__()` (clang, gcc, MSVC, Sun C, PGI
+//       Compilers, ...);
 //
 //     - C99 c расширениями `__typeof__()` и `_Generic()`.
 //
 //
 // До первого включения можно определить следующие макросы значением 1:
 //
-// `_COUNTOF_NS_WANT_VLA` - обеспечить поддержку VLA (если не определён
+// `_COUNTOF_NS_WANT_C11_VLA` - обеспечить поддержку VLA (если не определён
 //     `__STDC_NO_VLA__`), без этого флага аргумент VLA будет вызывать ошибку
-//     компиляции. (Поддержка VLA требует соответствия компилятора `6.7.5.2
-//     Array declarators` C11 и выше)
+//     компиляции;
+//
+//     ПРЕДУПРЕЖДЕНИЕ: Поддержка VLA требует соответствия компилятора `6.5.6
+//     Additive operators` C11 и выше.
+//
+//     Кроме того, формально, макрос перестаёт быть константным выражением для
+//     всех типов аргументов. Многие компиляторы преобразуют его в константное
+//     выражение, но это расширение стандарта, которое может быть
+//     диагностировано ключом `-pedantic`, `-Wgnu-folding-constant` или
+//     аналогичным;
 //
 //         TODO: Дублировать ветку `_Generic()`, для того, что бы показать
-//         сообщение о возможности _COUNTOF_NS_WANT_VLA
+//         сообщение о возможности _COUNTOF_NS_WANT_C11_VLA
 //
 // `_COUNTOF_NS_WANT_STDC` - не использовать расширение `__typeof__()`;
 //
 // Данный заголовочный файл определяет `_COUNTOF_NS_VLA_UNSUPPORTED` в случае,
 // если не обеспечивается поддержка VLA.
-//
 
 #ifndef COUNTOF_NS_H_6951
 #define COUNTOF_NS_H_6951
@@ -65,14 +73,25 @@
     #else
         #error "With _COUNTOF_NS_WANT_STDC required C23 typeof(t)"
     #endif
-    #define _countof_ns_unsafe(a)  (sizeof(*(a)) ? sizeof(a)/sizeof(*(a)) : 0)
-    #if __STDC_NO_VLA__ || !_COUNTOF_NS_WANT_VLA
+    #define _countof_ns_unsafe(a)  (!sizeof(*(a)) ? 0 \
+                : sizeof(a)/( sizeof(*(a)) ? sizeof(*(a)) : (size_t)-1 ))
+    #if __STDC_NO_VLA__ || !_COUNTOF_NS_WANT_C11_VLA
         #define _COUNTOF_NS_VLA_UNSUPPORTED  (1)
+        // Использование традиционного `sizeof(struct{int:(-1)})` невозможно
+        // ввиду MSVC Level 1 warning C4116: unnamed type definition in
+        // parentheses.
+        //
+        // Использование ошибки компиляции при размере массива -1 полностью
+        // безопасно, `_Generic()` является константным выражением, т.к.
+        // ограничен типами постоянного размера и выбирает одну из двух
+        // констант -1 или 1. Поэтому ошибка компиляции будет выдана вне
+        // зависимости от поддержки VLA компилятором.
+
         #define _countof_ns_must_be(a) ((size_t)!sizeof(char[_Generic(&(a), \
                     _countof_ns_typeof(*(a)) (*)[_countof_ns_unsafe(a)]: 1, \
                     default: -1)]))
     #else
-        #define _countof_ns_must_be(a)  ((size_t)( \
+        #define _countof_ns_must_be(a)  (0*sizeof( \
                     (_countof_ns_typeof(a) **)&(a) - \
                     (_countof_ns_typeof(*(a))(**)[_countof_ns_unsafe(a)])&(a)))
     #endif
@@ -80,9 +99,11 @@
 #else
     #define _COUNTOF_NS_VLA_UNSUPPORTED  (1)
     template<size_t A, size_t E, class T, size_t N>
-    constexpr static size_t _countof_ns_aux(T (&)[N]) { return N; }
+    constexpr static size_t _countof_ns_aux(const T (&)[N]) noexcept {
+        return N;
+    }
     template<size_t A, size_t E, class T>
-    constexpr static size_t _countof_ns_aux(T (&)) {
+    constexpr static size_t _countof_ns_aux(const T (&)) noexcept {
         static_assert(0 == A, "Argument must be zero-length array");
         return 0;
     }
